@@ -12,6 +12,3 @@ node_modules/
 # Build
 dist/
 build/
-
-# Claude Code Skills
-skills-lock.json

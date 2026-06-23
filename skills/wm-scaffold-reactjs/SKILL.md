@@ -410,6 +410,9 @@ negation must come *after* the `.env.*` line so it isn't re-ignored:
 .env
 .env.*
 !.env.example
+
+# Claude Code Skills
+skills-lock.json
 ```
 
 ## Step 6 — Update `package.json` scripts
