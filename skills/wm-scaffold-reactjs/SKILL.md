@@ -42,12 +42,12 @@ If they haven't done this yet, point them to these commands and wait until they
 confirm the project exists and `npm install` has run. Everything below assumes
 you're operating inside that project directory.
 
-## Step 1 — Ask exactly two questions
+## Step 1 — Ask exactly four questions
 
-Two libraries are optional and depend on the developer's taste. Ask only these
-two, clearly, before touching anything:
+Four libraries are optional and depend on the developer's taste. Ask only these
+four, clearly, before touching anything:
 
-1. **MUI (Material UI) — Recommended.** Install `@mui/material`,
+1. **MUI (Material UI) — Recommended.** Install `@mui/material`, `@mui/icons-material`,
    `@emotion/react`, `@emotion/styled`?
    - **Yes** → install the packages, create `src/theme/index.js` exporting a
      basic `createTheme`, and wire `ThemeProvider` + `CssBaseline` into
@@ -61,19 +61,26 @@ two, clearly, before touching anything:
    - **No** → skip the install, but still create the `src/hooks/` folder (empty,
      no files).
 
-These four are **always** installed/configured — never ask about them:
+3. **Redux Toolkit.** Install `@reduxjs/toolkit` and `react-redux`?
+   - **Yes** → install the packages, write a real working `src/redux/store.js`
+     with `configureStore`, create a sample `src/redux/slices/appSlice.js` using
+     `createSlice`, and wrap the app in `<Provider store={store}>` in `main.jsx`.
+   - **No** → skip the install. Create `src/redux/` folder with a comment-only
+     `store.js` stub. Do not create `src/redux/slices/` or any slice files.
+
+4. **React Hook Form.** Install `react-hook-form`?
+   - **Yes** → install the package. No bootstrap file is written; the package is
+     ready to import anywhere a form is needed.
+   - **No** → skip the install entirely.
+
+These two are **always** installed/configured — never ask about them:
 
 - `react-router-dom` — always installed. `BrowserRouter` always wraps the app in
   `main.jsx`, and a single default route `/` → `HomePage` is wired in `App.jsx`.
 - `axios` — always installed. `src/services/apiClient.js` is always bootstrapped
   with `axios.create` reading `import.meta.env.VITE_API_BASE_URL`.
 
-**Redux note:** do *not* ask about Redux Toolkit. Always create
-`src/redux/store.js` and `src/features/auth/authSlice.js` as comment-only stubs.
-No Redux package is installed; the stub comments explain how to wire it up later
-if the developer chooses to.
-
-After collecting the two answers, **list the full set of packages to be
+After collecting the four answers, **list the full set of packages to be
 installed and ask for one final confirmation before running any `npm install`.**
 This avoids surprising the developer with installs they didn't expect.
 
@@ -87,8 +94,10 @@ npm install react-router-dom axios
 
 Then, conditional on the answers from Step 1:
 
-- MUI confirmed: `npm install @mui/material @emotion/react @emotion/styled`
+- MUI confirmed: `npm install @mui/material @mui/icons-material @emotion/react @emotion/styled`
 - TanStack confirmed: `npm install @tanstack/react-query`
+- Redux Toolkit confirmed: `npm install @reduxjs/toolkit react-redux`
+- React Hook Form confirmed: `npm install react-hook-form`
 
 ## Step 3 — Create the folder structure
 
@@ -116,12 +125,16 @@ src/
 │   └── constants.js          # app-wide constants, route names (bootstrap)
 ├── features/
 │   └── auth/
-│       └── authSlice.js      # Redux auth slice stub
+│       └── authSlice.js      # Redux auth slice stub — always created
 ├── hooks/                    # custom + TanStack Query hooks — always created
+├── locales/
+│   └── en.js                 # English text constants — always created (bootstrap)
 ├── pages/
 │   └── HomePage.jsx          # root landing page — real component (bootstrap)
 ├── redux/
-│   └── store.js              # Redux store stub
+│   ├── store.js              # Redux store (bootstrap if Redux confirmed; stub otherwise)
+│   └── slices/               # only created if Redux confirmed
+│       └── appSlice.js       # sample Redux slice (only if Redux confirmed)
 ├── services/
 │   ├── apiClient.js          # axios instance (bootstrap)
 │   ├── baseService.js        # generic service layer — imports + comment (bootstrap)
@@ -133,9 +146,9 @@ src/
     └── formatters.js         # date/string/number helpers (stub)
 ```
 
-The folders `src/redux/`, `src/hooks/`, and `src/theme/` are **always** created,
-regardless of which optional packages were chosen — they're load-bearing parts
-of the convention even when empty.
+The folders `src/hooks/`, `src/locales/`, `src/redux/`, and `src/theme/` are
+**always** created, regardless of which optional packages were chosen.
+`src/redux/slices/` is only created when Redux Toolkit is confirmed.
 
 ## Step 4 — Bootstrap file contents
 
@@ -143,17 +156,45 @@ Bootstrap files get minimal *working* code; everything else gets a one-line
 comment. Use the exact content below, applying the conditional pieces only when
 the relevant package was confirmed.
 
+### `src/locales/en.js` (always created)
+
+Seed the file with a `TEXT` object containing common UI string constants so the
+project starts with a consistent i18n-friendly pattern. Developers add new
+strings here rather than scattering inline string literals across components.
+
+```js
+const TEXT = {
+  APP_NAME: "App",
+  WELCOME: "Welcome",
+  LOADING: "Loading…",
+  ERROR: "Something went wrong. Please try again.",
+  NOT_FOUND: "Page not found",
+  BACK: "Back",
+  CANCEL: "Cancel",
+  CONFIRM: "Confirm",
+  SAVE: "Save",
+  DELETE: "Delete",
+  EDIT: "Edit",
+  SUBMIT: "Submit",
+  SEARCH: "Search…",
+  NO_RESULTS: "No results found",
+};
+
+export default TEXT;
+```
+
 ### `src/main.jsx`
 
 Compose providers from outermost to innermost in this order — the order matters
-because routing and data/query context should be available to the whole tree,
-and MUI's theme should wrap the rendered UI:
+because Redux store must wrap everything, routing and data/query context should
+be available to the whole tree, and MUI's theme should wrap the rendered UI:
 
 1. `<StrictMode>` (always)
-2. `<BrowserRouter>` (always)
-3. `<QueryClientProvider client={queryClient}>` (only if TanStack confirmed)
-4. `<ThemeProvider theme={theme}><CssBaseline /></ThemeProvider>` (only if MUI confirmed)
-5. `<App />`
+2. `<Provider store={store}>` (only if Redux Toolkit confirmed)
+3. `<BrowserRouter>` (always)
+4. `<QueryClientProvider client={queryClient}>` (only if TanStack confirmed)
+5. `<ThemeProvider theme={theme}><CssBaseline /></ThemeProvider>` (only if MUI confirmed)
+6. `<App />`
 
 When TanStack is confirmed, create the client with these defaults (one retry and
 no refetch-on-focus is a sane, quiet starting point most teams keep):
@@ -169,8 +210,9 @@ const queryClient = new QueryClient({
 });
 ```
 
-Import `theme` from `./theme` and `App` from `./App`. Render into
-`document.getElementById('root')` as the Vite template does.
+Import `theme` from `./theme` and `App` from `./App`. When Redux is confirmed,
+import `{ Provider }` from `react-redux` and `store` from `./redux/store`.
+Render into `document.getElementById('root')` as the Vite template does.
 
 ### `src/App.jsx` (always)
 
@@ -293,12 +335,13 @@ theme is wired up:
 
 ```jsx
 import { Box, Typography } from '@mui/material';
+import TEXT from '../locales/en';
 
 function HomePage() {
   return (
     <Box sx={{ p: 4 }}>
       <Typography variant="h4" component="h1" gutterBottom>
-        Welcome
+        {TEXT.WELCOME}
       </Typography>
       <Typography variant="body1">
         Your app scaffold is ready. Start building from here.
@@ -314,10 +357,12 @@ If **MUI was NOT confirmed**, use plain HTML tags so there's no dependency on an
 uninstalled library:
 
 ```jsx
+import TEXT from '../locales/en';
+
 function HomePage() {
   return (
     <main style={{ padding: '2rem' }}>
-      <h1>Welcome</h1>
+      <h1>{TEXT.WELCOME}</h1>
       <p>Your app scaffold is ready. Start building from here.</p>
     </main>
   );
@@ -339,15 +384,67 @@ import { ENDPOINTS } from '../api/endpoints';
 // Generic service layer — add reusable API call functions here using apiClient and ENDPOINTS
 ```
 
+### `src/redux/store.js` (only if Redux Toolkit confirmed)
+
+Write a real, working store that imports the sample slice. This is the same
+pattern used in production — register all future slices here:
+
+```js
+import { configureStore } from "@reduxjs/toolkit";
+import appReducer from "./slices/appSlice";
+
+const store = configureStore({
+  reducer: {
+    app: appReducer,
+  },
+});
+
+export default store;
+```
+
+### `src/redux/slices/appSlice.js` (only if Redux Toolkit confirmed)
+
+A minimal but real slice that demonstrates the `createSlice` pattern. Developers
+replace or extend this with domain-specific slices:
+
+```js
+import { createSlice } from "@reduxjs/toolkit";
+
+const appSlice = createSlice({
+  name: "app",
+  initialState: {
+    isLoading: false,
+    error: null,
+  },
+  reducers: {
+    setLoading(state, action) {
+      state.isLoading = action.payload;
+    },
+    setError(state, action) {
+      state.error = action.payload;
+    },
+    clearError(state) {
+      state.error = null;
+    },
+  },
+});
+
+export const { setLoading, setError, clearError } = appSlice.actions;
+
+export const selectIsLoading = (state) => state.app.isLoading;
+export const selectError = (state) => state.app.error;
+
+export default appSlice.reducer;
+```
+
 ### Comment-only stub files
 
 The following files contain a single comment line and nothing else. They mark
 where future code belongs without implementing it:
 
-`src/redux/store.js` (always created)
+`src/redux/store.js` (only if Redux Toolkit NOT confirmed)
 ```js
-// Redux store — always scaffolded as a stub.
-// To activate: npm install @reduxjs/toolkit react-redux
+// Redux store — stub. To activate: npm install @reduxjs/toolkit react-redux
 // Then: import { configureStore } from '@reduxjs/toolkit' and register your slices here.
 ```
 
@@ -434,20 +531,21 @@ development. Update the `scripts` block to:
 These constraints are what keep the scaffold reusable across every project — if
 you start implementing logic, the scaffold stops being a neutral starting point:
 
-- **No feature logic.** No real API calls, hook implementations, Redux reducers,
-  or business component bodies. The one exception is `HomePage.jsx`, which needs
-  a minimal working component (and default export) so the app actually boots —
-  keep it a placeholder "Welcome" view, not a real feature.
+- **No feature logic.** No real API calls, hook implementations, or business
+  component bodies. The exceptions are `HomePage.jsx` (needs a default export so
+  the app boots) and the Redux bootstrap files when Redux is confirmed — those
+  are minimal working skeletons, not feature implementations.
 - **Non-bootstrap files are one comment line each.** Bootstrap files
-  (`main.jsx`, `App.jsx`, `theme/index.js`, `apiClient.js`,
-  `requestHeaders.js`, `endpoints.js`, `constants.js`, `HomePage.jsx`, and
-  `baseService.js`) get the minimal working code shown above, conditional on
-  confirmed packages. `baseService.js` gets its `apiClient` + `ENDPOINTS`
-  imports plus a comment — no implemented calls.
+  (`main.jsx`, `App.jsx`, `theme/index.js`, `apiClient.js`, `requestHeaders.js`,
+  `endpoints.js`, `constants.js`, `HomePage.jsx`, `baseService.js`, `locales/en.js`,
+  and — when Redux confirmed — `redux/store.js` and `redux/slices/appSlice.js`)
+  get the minimal working code shown above. `baseService.js` gets its `apiClient`
+  + `ENDPOINTS` imports plus a comment — no implemented calls.
 - **`.env` files are git-ignored; `.env.example` is committed.** Update
   `.gitignore` so secrets never reach the repo while the template stays tracked.
 - **Always confirm packages before installing.**
 - **All config comes from `import.meta.env.VITE_*`** — base URLs, tokens, and
   credentials are read from env, never hardcoded.
-- **`src/redux/`, `src/hooks/`, and `src/theme/` are always created**, whatever
-  the package choices.
+- **`src/redux/`, `src/hooks/`, `src/locales/`, and `src/theme/` are always
+  created** whatever the package choices. `src/redux/slices/` is only created
+  when Redux Toolkit is confirmed.
